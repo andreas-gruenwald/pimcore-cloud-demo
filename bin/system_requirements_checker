@@ -1,0 +1,78 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Pimcore
+ *
+ * This source file is available under two different licenses:
+ * - GNU General Public License version 3 (GPLv3)
+ * - Pimcore Enterprise License (PEL)
+ * Full copyright and license information is available in
+ * LICENSE.md which is distributed with this source code.
+ *
+ * @copyright  Copyright (c) Pimcore GmbH (http://www.pimcore.org)
+ * @license    http://www.pimcore.org/license     GPLv3 and PEL
+ */
+
+ob_get_clean();
+
+if (file_exists($a = getcwd() . '/vendor/autoload.php')) {
+    include $a;
+} elseif (file_exists($a = __DIR__ . '/../../../../vendor/autoload.php')) {
+    include $a;
+} elseif (file_exists($a = __DIR__ . '/../vendor/autoload.php')) {
+    include $a;
+} else {
+    fwrite(STDERR, 'Cannot locate autoloader; please run "composer install"' . PHP_EOL);
+    exit(1);
+}
+
+\Pimcore\Bootstrap::setProjectRoot();
+
+
+/** @var \Pimcore\Kernel $kernel */
+$kernel = \Pimcore\Bootstrap::startupCli();
+
+printf("Environment: ".\Pimcore\Config::getEnvironment().PHP_EOL);
+printf("InDebugMode: ".Pimcore::inDebugMode().PHP_EOL);
+
+$dsn = 'mysql:dbname='.getenv('MYSQL_DATABASE').';host='.getenv('MYSQL_HOST');
+$user = getenv('MYSQL_USER');
+$password = getenv('MYSQL_PASSWORD');
+
+try {
+    echo "DSN:".$dsn.PHP_EOL;
+    echo "USER: ".$user.PHP_EOL;
+    echo "PW: ".$password.PHP_EOL;
+    echo "Try to connect to DB...";
+    $dbh = new \PDO($dsn, $user, $password);
+    $tables = $dbh->query('SHOW TABLES');
+    echo "DONE".PHP_EOL;
+    print_r($tables);
+} catch (\PDOException $e) {
+    echo 'Connection failed: ' . $e->getMessage();
+    echo $e->getTraceAsString();
+}
+
+/*
+//print_r(getenv());
+**/
+try {
+    \Pimcore\Db::getConnection();
+    //print_r(\Pimcore\Tool\Requirements::checkMysql(\Pimcore\Db::getConnection()));
+
+
+} catch (\Exception $e) {
+    echo ":::".$e->getMessage();
+    echo $e->getTraceAsString();
+
+}
+
+#$entity = '&radic;';
+#$squareRoot = '√';
+#$squareRoot = html_entity_decode($entity);
+#$squareRoot = mb_convert_encoding($entity, 'UTF-8', 'HTML-ENTITIES');
+#printf('test: %s'.PHP_EOL, $squareRoot);
+
+
+
+

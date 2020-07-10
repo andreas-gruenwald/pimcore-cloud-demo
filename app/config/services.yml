@@ -149,10 +149,7 @@ services:
         arguments:
             $httpUtils: '@security.http_utils'
 
-
-
-
-
+    AppBundle\EventListener\S3Listener: ~
 
     # ---------------------------------------------------------
     # Workflow

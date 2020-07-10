@@ -2,44 +2,59 @@ version: '2.4'
 services:
   redis:
     image: redis:alpine
-    container_name: pimcore-demo-redis
+    ports:
+      - ${REDIS_PORT}:6379
 
   db:
     image: mariadb:10.4
-    container_name: pimcore-demo-mariadb
     working_dir: /application
     command: [mysqld, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --innodb-file-format=Barracuda, --innodb-large-prefix=1, --innodb-file-per-table=1]
     volumes:
       - pimcore-demo-database:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=ROOT
-      - MYSQL_DATABASE=pimcore
-      - MYSQL_USER=pimcore
-      - MYSQL_PASSWORD=pimcore
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    ports:
+      - ${MYSQL_PORT}:3306
 
   adminer:
     image: adminer
     ports:
-      - 8080:8080
+      - ${ADMINER_PORT}:8080
 
   php:
     image: pimcore/pimcore:PHP7.4-apache
-    container_name: pimcore-demo-php
+    environment:
+      - APP_COLOR=${APP_COLOR}
     volumes:
       - .:/var/www/html:cached
+      #- cache:/var/www/html/var/cache
+      #- log:/var/www/html/var/log
+      - assets:/var/www/html/web/var/assets
+      - thumbnails:/var/www/html/web/var/tmp
+      - versions:/var/www/html/var/versions
+      - recyclebin:/var/www/html/var/recyclebin
     ports:
-     - 80:80
-     - 443:443
-
+      - ${HTTP_PORT}:80
+      - ${HTTPS_PORT}:443
+    env_file:
+      - .env # custom .env file should be used.
   php-debug:
     image: pimcore/pimcore:PHP7.4-apache-debug
-    container_name: pimcore-demo-debug-php
     volumes:
       - .:/var/www/html:cached
     ports:
-     - 88:80
+      - ${DEBUG_PORT}:80
     environment:
       - PHP_IDE_CONFIG="serverName=localhost"
 
 volumes:
   pimcore-demo-database:
+  assets:
+  thumbnails:
+  versions:
+  recyclebin:
+  #cache:
+  #log:

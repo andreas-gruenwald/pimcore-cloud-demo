@@ -19,5 +19,6 @@ $s3Client->registerStreamWrapper();
 
 // set default file context
 \Pimcore\File::setContext(stream_context_create([
-    's3' => ['seekable' => true]
+    's3' => ['seekable' => true, 'ACL' => 'private']
 ]));
+

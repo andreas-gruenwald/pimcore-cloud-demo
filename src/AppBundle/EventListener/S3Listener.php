@@ -67,6 +67,8 @@ class S3Listener implements EventSubscriberInterface
         if(!$path) {
             if(!file_exists($fileSystemPath)) {
                 // the thumbnail doesn't exist yet, so we need to create it on request -> Thumbnail controller plugin
+                // the first time the path is displayed without the CLOUD FRONT URL, because otherwise the thumbnail
+                // cannot be created --> Pimcore Issue!
                 $path = str_replace(PIMCORE_TEMPORARY_DIRECTORY."/image-thumbnails", "", $fileSystemPath);
             } else {
 

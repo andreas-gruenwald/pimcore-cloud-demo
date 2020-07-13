@@ -15,13 +15,17 @@
 
 namespace AppBundle\EventListener;
 
+use Pimcore\Cache;
 use Pimcore\Event\AssetEvents;
 use Pimcore\Event\FrontendEvents;
+use Pimcore\Tool;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Aws\S3\S3Client;
+use Symfony\Component\HttpFoundation\Request;
 
 class S3Listener implements EventSubscriberInterface
 {
@@ -29,8 +33,15 @@ class S3Listener implements EventSubscriberInterface
     private $s3TmpUrlPrefix;
     private $s3AssetUrlPrefix;
 
-    public function __construct()
+    private static $VERSION="1.0";
+
+    private static $I=0;
+
+    private $request;
+
+    public function __construct(RequestStack $requestStack)
     {
+        $this->request = $requestStack->getMasterRequest();
         $this->s3BaseUrl = getenv('s3CloudfrontURL');
         $this->s3TmpUrlPrefix = $this->s3BaseUrl . $this->replaceCloudfront(PIMCORE_TEMPORARY_DIRECTORY);
         $this->s3AssetUrlPrefix = $this->s3BaseUrl . $this->replaceCloudfront(PIMCORE_ASSET_DIRECTORY);
@@ -59,25 +70,48 @@ class S3Listener implements EventSubscriberInterface
     public function onFrontendPathThumbnail(GenericEvent $event) {
         // rewrite the path for the frontend
 
+        if(!Tool::isFrontend()) {
+            return;
+        }
+
+        $controllerName = $this->request->attributes->get('_controller');
+        $onDelivery = strpos($controllerName, 'PublicServicesController') > 0;
+
         $fileSystemPath = $event->getSubject()->getFileSystemPath();
 
         $cacheKey = "thumb_s3_" . md5($fileSystemPath);
         $path = \Pimcore\Cache::load($cacheKey);
 
         if(!$path) {
+
+            if (!$onDelivery) {
+                //echo ":::".$this->I;
+                //$this->I++;
+            }
+
             if(!file_exists($fileSystemPath)) {
                 // the thumbnail doesn't exist yet, so we need to create it on request -> Thumbnail controller plugin
                 // the first time the path is displayed without the CLOUD FRONT URL, because otherwise the thumbnail
                 // cannot be created --> Pimcore Issue!
-                $path = str_replace(PIMCORE_TEMPORARY_DIRECTORY."/image-thumbnails", "", $fileSystemPath);
-            } else {
 
+                $path = str_replace(PIMCORE_TEMPORARY_DIRECTORY."/image-thumbnails", "", $fileSystemPath);
+
+            } else {
                 //without CDN:
                 //$path = str_replace(PIMCORE_TEMPORARY_DIRECTORY . "/image-thumbnails/", $this->s3TmpUrlPrefix . "/", $fileSystemPath);
 
                 //with CDN:
                 $path = str_replace(PIMCORE_TEMPORARY_DIRECTORY."/", $this->s3TmpUrlPrefix . "/", $fileSystemPath);
+
+                Cache::save($path, $cacheKey, ['s3'], null, 0, true);
+
             }
+        }
+
+        //obviously encoding does not work, because sometimes there are paths such as
+        //"Sample Content/Example Images&image-thumb__341__galleryLightbox/example.webp" in the srcset
+        if (strpos($path, ' ') !== false) {
+            $path = str_replace(' ', '%20', $path);
         }
 
         $event->setArgument('frontendPath',$path);

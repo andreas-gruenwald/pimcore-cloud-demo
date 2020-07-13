@@ -66,6 +66,12 @@
             {{ pimcore_head_link() }}
         {% endblock %}
 
+        <style>
+            .site-header {
+                background-color:{{ app_get_env('APP_COLOR') }} !important;
+            }
+        </style>
+
     </head>
     <body>
         {# get root node if there is no document defined (for pages which are routed directly through static route) #}

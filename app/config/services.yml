@@ -88,6 +88,8 @@ services:
     AppBundle\Twig\Extension\PrintCatalogExtension:
         tags: ['twig.extension']
 
+    AppBundle\Twig\Extension\DockerExtension:
+        tags: ['twig.extension']
 
     # ---------------------------------------------------------
     # Link Generators for DataObjects

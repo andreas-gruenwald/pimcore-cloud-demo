@@ -1,9 +1,23 @@
 version: '2.4'
 services:
+
   redis:
     image: redis:alpine
     ports:
       - ${REDIS_PORT}:6379
+    volumes:
+      - ./config/redis-session.conf:/usr/local/etc/redis/redis-cache.conf
+    command:
+      ['redis-server', '--appendonly', 'yes', '/usr/local/etc/redis/redis.conf']
+
+  redis_session:
+    image: redis:alpine
+    ports:
+      - ${REDIS_SESSION_PORT}:6379
+    volumes:
+      - ./config/redis-session.conf:/usr/local/etc/redis/redis-session-store.conf
+    command:
+      ['redis-server', '--appendonly', 'yes', '/usr/local/etc/redis/redis.conf']
 
   db:
     image: mariadb:10.4
@@ -48,10 +62,12 @@ services:
       - .:/var/www/html:cached
     ports:
       - ${DEBUG_PORT}:80
+      - ${XDEBUG_PORT}:9000
+    env_file:
+      - .env
     environment:
       - PHP_IDE_CONFIG="serverName=localhost"
-    env_file:
-      - php-container.env
+
 volumes:
   pimcore-demo-database:
   assets:

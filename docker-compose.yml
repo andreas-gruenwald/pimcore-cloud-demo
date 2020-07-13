@@ -41,6 +41,7 @@ services:
       - ${HTTPS_PORT}:443
     env_file:
       - .env # custom .env file should be used.
+      - php-container.env
   php-debug:
     image: pimcore/pimcore:PHP7.4-apache-debug
     volumes:
@@ -49,7 +50,8 @@ services:
       - ${DEBUG_PORT}:80
     environment:
       - PHP_IDE_CONFIG="serverName=localhost"
-
+    env_file:
+      - php-container.env
 volumes:
   pimcore-demo-database:
   assets:

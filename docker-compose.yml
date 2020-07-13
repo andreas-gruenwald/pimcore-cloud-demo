@@ -6,18 +6,16 @@ services:
     ports:
       - ${REDIS_PORT}:6379
     volumes:
-      - ./config/redis-session.conf:/usr/local/etc/redis/redis-cache.conf
-    command:
-      ['redis-server', '--appendonly', 'yes', '/usr/local/etc/redis/redis.conf']
+      - ./app/config/local/redis-cache.conf:/usr/local/etc/redis/redis.conf
+    command: ['redis-server',  '/usr/local/etc/redis/redis.conf']
 
   redis_session:
     image: redis:alpine
     ports:
       - ${REDIS_SESSION_PORT}:6379
     volumes:
-      - ./config/redis-session.conf:/usr/local/etc/redis/redis-session-store.conf
-    command:
-      ['redis-server', '--appendonly', 'yes', '/usr/local/etc/redis/redis.conf']
+      - ./app/config/local/redis-session-store.conf:/usr/local/etc/redis/redis.conf
+    command: ['redis-server', /usr/local/etc/redis/redis.conf']
 
   db:
     image: mariadb:10.4

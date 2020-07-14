@@ -107,7 +107,7 @@ class S3Listener implements EventSubscriberInterface
                     $generationPath = Tool::getHostUrl().$path;
                     $httpClient = HttpClient::create();
                     $response = $httpClient->request('GET', $generationPath);
-                    $content = $response->getContent();
+                    //$content = $response->getContent();
                     self::$LIVE_GENERATION_ATTEMPTS++;
                 }
 

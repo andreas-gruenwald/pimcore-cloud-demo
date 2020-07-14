@@ -16,6 +16,7 @@
 namespace AppBundle\Command;
 
 use Aws\S3\S3Client;
+use Pimcore\Cache;
 use Pimcore\Console\AbstractCommand;
 use Pimcore\Db;
 use Pimcore\File;
@@ -76,6 +77,25 @@ class SystemRequirementsCommand extends AbstractCommand
             $output->writeln('<error>~ S3 connection is not working. '.$e->getMessage());
         }
 
+
+        //check Cache Storage in Redis
+        try {
+
+            if (!Cache::isEnabled()) {
+                $output->writeln('<error>Cache is not enabled.</error>');
+            } else {
+                Cache::save('bar', 'foo', [], null, 0, true);
+                $bar = Cache::load('foo');
+                if ('bar' !== $bar) {
+                    throw new \Exception('Basic cache test returns wrong result '.$bar);
+                } else {
+                    $output->writeln('<info>~ Cache setup OK.</info>');
+                }
+            }
+        } catch (\Throwable $e) {
+            $output->writeln('<error>~ Cache setup not working yet.'.$e->getMessage());
+        }
+
         //check Session Storage
         try {
             $this->session->set('foo', 'bar');
@@ -89,5 +109,6 @@ class SystemRequirementsCommand extends AbstractCommand
             $output->writeln('<error>~ Session Storage setup not working yet.'.$e->getMessage());
         }
 
+        return 0;
     }
 }

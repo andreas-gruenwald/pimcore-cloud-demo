@@ -21,6 +21,7 @@ use Pimcore\Event\FrontendEvents;
 use Pimcore\Tool;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -36,6 +37,9 @@ class S3Listener implements EventSubscriberInterface
     private static $VERSION="1.0";
 
     private static $I=0;
+
+    private static $MAX_GENERATION_ATTEMPTS_PER_REQUEST = 10;
+    private static $LIVE_GENERATION_ATTEMPTS = 0;
 
     private $request;
 
@@ -81,6 +85,9 @@ class S3Listener implements EventSubscriberInterface
 
         $cacheKey = "thumb_s3_" . md5($fileSystemPath);
         $path = \Pimcore\Cache::load($cacheKey);
+        
+        $asset = $event->getSubject();
+
 
         if(!$path) {
 
@@ -95,6 +102,15 @@ class S3Listener implements EventSubscriberInterface
                 // cannot be created --> Pimcore Issue!
 
                 $path = str_replace(PIMCORE_TEMPORARY_DIRECTORY."/image-thumbnails", "", $fileSystemPath);
+
+                if (self::$LIVE_GENERATION_ATTEMPTS < self::$MAX_GENERATION_ATTEMPTS_PER_REQUEST) {
+                    $generationPath = Tool::getHostUrl().$path;
+                    $httpClient = HttpClient::create();
+                    $response = $httpClient->request('GET', $generationPath);
+                    $content = $response->getContent();
+                    self::$LIVE_GENERATION_ATTEMPTS++;
+                }
+
 
             } else {
                 //without CDN:

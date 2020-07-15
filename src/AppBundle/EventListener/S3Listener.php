@@ -55,7 +55,7 @@ class S3Listener implements EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         if (!getenv('s3EngineEnabled')) {
-            return;
+            return [];
         }
 
         return [

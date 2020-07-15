@@ -42,15 +42,56 @@ class SystemRequirementsCommand extends AbstractCommand
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        //check DB
+        $this->checkFilePermissions();
+        $this->checkDb();
+        $this->checkS3();
+        $this->checkRedisCache();
+        $this->checkSessionStorage();
+        return 0;
+    }
+
+    private function checkFilePermissions() {
+        $output = $this->output;
+
+        $messageLog = [];
+        foreach ([PIMCORE_SYMFONY_CACHE_DIRECTORY, PIMCORE_LOG_DIRECTORY] as $dir) {
+            if (!is_writable($dir)) {
+                $messageLog[$dir] = 'Not writable: ' . $dir;
+            }
+        }
+
+        $hasErrors = false;
+        if (!empty($messageLog)) {
+            $output->writeln('<error> ~ File permissions not optimal.</error>');
+            foreach ($messageLog as $dir => $log) {
+                $output->write(' - '.$log);
+                shell_exec('chown www-data: "'.$dir.'" -R');
+                if (is_writable($dir)) {
+                    $output->write('<info> fixed!</info>');
+                } else {
+                    $hasErrors = true;
+                }
+                $output->writeln("");
+            }
+        }
+
+        if (!$hasErrors) {
+            $output->writeln('<info>~ File permissions OK.</info>');
+        }
+    }
+
+    private function checkDb() {
+        $output = $this->output;
         try {
             Db::getConnection();
             $output->writeln('<info>~ DB connection OK.</info>');
         } catch (\Throwable $e) {
             $output->writeln('<error>~ DB connection is not working.');
         }
+    }
 
-        //check S3
+    private function checkS3() {
+        $output = $this->output;
         try {
             $context = File::getContext();
             $options = stream_context_get_options($context);
@@ -67,7 +108,10 @@ class SystemRequirementsCommand extends AbstractCommand
                     ],
                 ]);
 
-                $s3Client->listBuckets();
+                $bucketExists = $s3Client->doesBucketExist(getenv('s3BucketName'));
+                if (!$bucketExists) {
+                    throw new \Exception(sprintf('Bucket "%s" not existing.', getenv('s3BucketName')));
+                }
 
             }
 
@@ -76,9 +120,10 @@ class SystemRequirementsCommand extends AbstractCommand
         } catch (\Throwable $e) {
             $output->writeln('<error>~ S3 connection is not working. '.$e->getMessage());
         }
+    }
 
-
-        //check Cache Storage in Redis
+    private function checkRedisCache() {
+        $output = $this->output;
         try {
 
             if (!Cache::isEnabled()) {
@@ -95,8 +140,10 @@ class SystemRequirementsCommand extends AbstractCommand
         } catch (\Throwable $e) {
             $output->writeln('<error>~ Cache setup not working yet.'.$e->getMessage());
         }
+    }
 
-        //check Session Storage
+    private function checkSessionStorage() {
+        $output = $this->output;
         try {
             $this->session->set('foo', 'bar');
             if ('bar' !== $this->session->get('foo')) {
@@ -109,6 +156,5 @@ class SystemRequirementsCommand extends AbstractCommand
             $output->writeln('<error>~ Session Storage setup not working yet.'.$e->getMessage());
         }
 
-        return 0;
     }
 }

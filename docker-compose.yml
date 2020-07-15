@@ -1,22 +1,27 @@
 version: '2.4'
 services:
 
-  redis:
+  # Redis for caching
+  redis_cache:
     image: redis:alpine
     ports:
-      - ${REDIS_PORT}:6379
+      - ${REDIS_CACHE_PORT}:6379
     volumes:
-      - ./app/config/local/redis-cache.conf:/usr/local/etc/redis/redis.conf
-    command: ['redis-server',  '/usr/local/etc/redis/redis.conf', '--appendonly yes']
+      - ./app/docker-config/redis-cache.conf:/usr/local/etc/redis/redis.conf
+      - redis_cache_storage:/data
+    command: ['redis-server', '/usr/local/etc/redis/redis.conf', '--appendonly', 'yes']
 
+  # Redis for session storage
   redis_session:
     image: redis:alpine
     ports:
       - ${REDIS_SESSION_PORT}:6379
     volumes:
-      - ./app/config/local/redis-session-store.conf:/usr/local/etc/redis/redis.conf
+      - ./app/docker-config/redis-session-store.conf:/usr/local/etc/redis/redis.conf
+      - redis_session_storage:/data
     command: ['redis-server', '/usr/local/etc/redis/redis.conf', '--appendonly yes']
 
+  # Maria DB
   db:
     image: mariadb:10.4
     working_dir: /application
@@ -31,15 +36,15 @@ services:
     ports:
       - ${MYSQL_PORT}:3306
 
+  # DB adminer tool
   adminer:
     image: adminer
     ports:
       - ${ADMINER_PORT}:8080
 
+  # Main PHP instance
   php:
     image: pimcore/pimcore:PHP7.4-apache
-    environment:
-      - APP_COLOR=${APP_COLOR}
     volumes:
       - .:/var/www/html:cached
       #- cache:/var/www/html/var/cache
@@ -52,25 +57,24 @@ services:
       - ${HTTP_PORT}:80
       - ${HTTPS_PORT}:443
     env_file:
-      - .env # custom .env file should be used.
-      - php-container.env
+      - ./app/docker-config/php-container.env
+
+  # Debug PHP instance for debugging with Xdebug
+  # (edit /usr/local/etc/php/conf.d/20-xdebug.ini and activate xdebug.remote_connect_back = 1 if you struggle)
   php-debug:
     image: pimcore/pimcore:PHP7.4-apache-debug
     volumes:
       - .:/var/www/html:cached
-      - assets:/var/www/html/web/var/assets
-      - thumbnails:/var/www/html/web/var/tmp
-      - versions:/var/www/html/var/versions
-      - recyclebin:/var/www/html/var/recyclebin
     ports:
       - ${DEBUG_PORT}:80
       - ${XDEBUG_PORT}:9000
     env_file:
-      - .env
-      - php-container.env
+      - ./app/docker-config/php-container.env
     environment:
       - PHP_IDE_CONFIG="serverName=localhost"
-
+#
+# Mounted volumes for development
+#
 volumes:
   pimcore-demo-database:
   assets:
@@ -79,3 +83,5 @@ volumes:
   recyclebin:
   #cache:
   #log:
+  redis_cache_storage:
+  redis_session_storage:

@@ -23,10 +23,6 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
-use Symfony\Component\HttpKernel\KernelEvents;
-use Aws\S3\S3Client;
-use Symfony\Component\HttpFoundation\Request;
 
 class S3Listener implements EventSubscriberInterface
 {
@@ -58,6 +54,10 @@ class S3Listener implements EventSubscriberInterface
 
     public static function getSubscribedEvents()
     {
+        if (!getenv('s3EngineEnabled')) {
+            return;
+        }
+
         return [
             //KernelEvents::REQUEST => 'initS3Wrappers',
             FrontendEvents::ASSET_IMAGE_THUMBNAIL => 'onFrontendPathThumbnail',
@@ -96,6 +96,8 @@ class S3Listener implements EventSubscriberInterface
                 //$this->I++;
             }
 
+            //echo ":::".$fileSystemPath;exit;
+
             if(!file_exists($fileSystemPath)) {
                 // the thumbnail doesn't exist yet, so we need to create it on request -> Thumbnail controller plugin
                 // the first time the path is displayed without the CLOUD FRONT URL, because otherwise the thumbnail
@@ -108,6 +110,8 @@ class S3Listener implements EventSubscriberInterface
                     $httpClient = HttpClient::create();
                     $response = $httpClient->request('GET', $generationPath);
                     //$content = $response->getContent();
+
+                    //echo ":::".$generationPath;exit;
                     self::$LIVE_GENERATION_ATTEMPTS++;
                 }
 

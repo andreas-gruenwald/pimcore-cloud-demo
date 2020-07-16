@@ -62,3 +62,8 @@ nbproject
 /tools/
 /website/
 .temp
+
+# custom docker adaptations
+app/docker-config/
+.env
+

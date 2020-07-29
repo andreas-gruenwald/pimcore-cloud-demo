@@ -1,0 +1,13 @@
+# Crontab configuration.
+# Customizable default crontab configuration used by the crontab installer.
+# Source of configuration: ~/www/bin/cron/crontab_definition.
+# Crontab explanation: https://crontab.guru
+# Placeholders: {env} will be replaced by the target environment (dev, live, etc.).
+#
+* * * * * ~/www/bin/cron/job/{env}/every-1-minute.sh >> ~/www/var/logs/every-1-minute-`date +\%Y-\%m-\%d`.log 2>&1
+*/5 * * * * ~/www/bin/cron/job/{env}/every-5-minutes.sh >> ~/www/var/logs/every-5-minutes-`date +\%Y-\%m-\%d`.log 2>&1
+*/15 * * * * ~/www/bin/cron/job/{env}/every-15-minutes.sh >> ~/www/var/logs/every-15-minutes-`date +\%Y-\%m-\%d`.log 2>&1
+0 * * * * ~/www/bin/cron/job/{env}/hourly.sh >> ~/www/var/logs/hourly-`date +\%Y-\%m-\%d`.log 2>&1
+0 23 * * * ~/www/bin/cron/job/{env}/nightly.sh >> ~/www/var/logs/nightly-`date +\%Y-\%m-\%d`.log 2>&1
+0 02 * * 7 ~/www/bin/cron/job/{env}/weekly.sh  >> ~/www/var/logs/weekly-`date +\%Y-\%m-\%d`.log 2>&1
+# EOL is important

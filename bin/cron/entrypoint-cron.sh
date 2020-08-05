@@ -31,5 +31,3 @@ if [ "$CLI_ENABLED" = 'true' ]; then
     crontab -u www-data -l
     echo "\n";
 fi
-
-#exec "$@"

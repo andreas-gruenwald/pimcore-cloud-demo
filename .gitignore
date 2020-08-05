@@ -64,6 +64,11 @@ nbproject
 .temp
 
 # custom docker adaptations
-app/docker-config/
+app/docker-config/*
+!app/docker-config/redis-cache.conf
+!app/docker-config/redis-session-store.conf
+!app/docker-config/container-connections-config.yml
+!app/docker-config/docker-compose.env
+!app/docker-config/php-container-packed-aws.dist.env
 .env
 

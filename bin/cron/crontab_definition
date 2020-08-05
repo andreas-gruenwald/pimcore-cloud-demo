@@ -4,12 +4,13 @@
 # Crontab explanation: https://crontab.guru
 # Placeholders: {env} will be replaced by the target environment (dev, live, etc.).
 #
-* * * * * /bin/echo "HELLO FROM CRON WITH LOGGING INTO /var/log/cron.log" >> /var/log/cron.log 2>&1
-* * * * * /bin/echo "HELLO FROM CRON WITHOUT LOG FILE" 2>&1
-* * * * * /var/www/html/bin/cron/job/{env}/every-1-minute.sh 2>&1
-*/5 * * * * /var/www/html/bin/cron/job/{env}/every-5-minutes.sh 2>&1
-*/15 * * * * /var/www/html/bin/cron/job/{env}/every-15-minutes.sh >> 2>&1
-0 * * * * /var/www/html/bin/cron/job/{env}/hourly.sh>&1
-0 23 * * * /var/www/html/bin/cron/job/{env}/nightly.sh 2>&1
-0 02 * * 7 /var/www/html/bin/cron/job/{env}/weekly.sh 2>&1
+* * * * * sudo -E /bin/bash -c "/bin/echo 'HELLO FROM CRON $(date)! This is just a dummy command to demonstrate that cron is installed and logging works.' >> /var/www/html/var/logs/cron.log"
+#* * * * * /bin/echo "HELLO FROM CRON WITH LOGGING INTO /var/log/cron.log" >> /var/www/html/var/logs/cron.log 2>&1
+#* * * * * /bin/echo "HELLO FROM CRON WITHOUT LOG FILE" >> /var/www/html/var/logs/cron.log  2>&1
+* * * * *  sudo -E /bin/bash -c "/var/www/html/bin/cron/job/{env}/every-1-minute.sh >> /var/www/html/var/logs/cron.log  2>&1"
+*/5 * * * * sudo -E /bin/bash -c "/var/www/html/bin/cron/job/{env}/every-5-minutes.sh >> /var/www/html/var/logs/cron.log  2>&1"
+*/15 * * * * sudo -E /bin/bash -c "/var/www/html/bin/cron/job/{env}/every-15-minutes.sh >> >> /var/www/html/var/logs/cron.log  2>&1"
+0 * * * * sudo -E /bin/bash -c "/var/www/html/bin/cron/job/{env}/hourly.sh> >> /var/www/html/var/logs/cron.log  &1"
+0 23 * * * sudo -E /bin/bash -c "/var/www/html/bin/cron/job/{env}/nightly.sh 2 >> /var/www/html/var/logs/cron.log >&1"
+0 02 * * 7 sudo -E bin/bash -c "/var/www/html/bin/cron/job/{env}/weekly.sh 2 >> /var/www/html/var/logs/cron.log  >&1"
 # EOL is important

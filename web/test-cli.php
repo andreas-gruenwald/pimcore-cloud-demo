@@ -25,7 +25,7 @@
             line-height:50px;
             font-weight:bold;
             min-width:200px;
-            background-color: <?php echo getenv('APP_COLOR') ? : 'white' ;?>
+            background-color: <?php echo getenv('APP_COLOR') ? : 'white' ;?>;
             padding-left:2em;
             padding-right:2em;
             text-align:center;
@@ -40,10 +40,11 @@
             color:white;
             margin: 0 0 20px 0;
             display: inline-block;
+            padding:10px;
         }
 
         .clibox.enabled {
-            color:green;
+            color:#8bc34a;
             font-weight:bold;
             font-family: monospace;
         }
@@ -58,7 +59,13 @@
     <div class="colorbox">Your app's color is <?php echo getenv('APP_COLOR');?>.</div>
 <?php endif; ?>
 
-<div class="clibox"><?php echo getenv('CLI_ENABLED') == 'true' ? 'CLI is enabled.' : 'CLI is deactivated.';?></div>
+<?php
+    $isCliEnabled = getenv('CLI_ENABLED') == 'true';
+?>
+
+<div class="clibox <?php echo $isCliEnabled ? "enabled" : "disabled";?>">
+    <?php echo $isCliEnabled ? '✓ CLI is enabled.' : '✓ CLI is not active.';?>
+</div>
 
 
 <form method="POST" action="">
@@ -70,7 +77,8 @@
         if ($ui = $_POST['userInput']) {
             echo shell_exec($ui.' 2>&1');
         } else {
-            echo shell_exec('whoami').'/sh:';
+            echo shell_exec('whoami');
+            echo shell_exec('pwd');
         }
         ?>
     </pre>
@@ -95,7 +103,9 @@ if ($ecsMetaUrl) {
         <?php foreach ($calls as $name => $command) {
 
             echo '<h3>'.$name.'</h3>';
-            p_r(file_get_contents($url));
+            echo "URL: ".$url.'<br>';
+            echo "Response:";
+            print_r(file_get_contents($url));
         }
         ?>
     </div>

@@ -175,10 +175,9 @@ class SystemRequirementsCommand extends AbstractCommand
             'version' => 'latest',
             'region' => getenv('s3Region'), //'us-east-2', // choose your favorite region
             'credentials' => [
-                // use your aws credentials
-                'key' => 'AKIAWBAR2ZIEPAO6XI2S', //getenv('s3Key'), //'AKIAJOAFDIFXXXXXXXXXX',
-                'secret' => 'hCL9RviyAHCt4m+K4L6KX7UyAixY6KJiy01i/t+m', //getenv('s3Secret'), //'uw7fGn0if9KvQR09O+n7E8+XXXXXXXXXX',
-            ],
+                'key' => getenv('ssmKey'),
+                'secret' => getenv('ssmSecret')
+            ]
         ]);
         return $ssmClient;
     }

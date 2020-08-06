@@ -57,7 +57,10 @@ services:
       - ${HTTP_PORT}:80
       - ${HTTPS_PORT}:443
     env_file:
-      - ./app/docker-config/php-container.env
+      - ./app/docker-config/php-container-local.env
+    healthcheck:
+      test: ["CMD-SHELL", "/var/www/html/bin/console app:system-requirements || exit 1"]
+      #test: ["CMD", "curl", "-f", "http://localhost"]
 
   # Debug PHP instance for debugging with Xdebug
   # (edit /usr/local/etc/php/conf.d/20-xdebug.ini and activate xdebug.remote_connect_back = 1 if you struggle)
@@ -69,7 +72,7 @@ services:
       - ${DEBUG_PORT}:80
       - ${XDEBUG_PORT}:9000
     env_file:
-      - ./app/docker-config/php-container.env
+      - ./app/docker-config/php-container-local.env
     environment:
       - PHP_IDE_CONFIG="serverName=localhost"
 #

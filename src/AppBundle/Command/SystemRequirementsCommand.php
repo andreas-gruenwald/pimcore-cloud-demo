@@ -16,6 +16,7 @@
 namespace AppBundle\Command;
 
 use Aws\S3\S3Client;
+use Aws\Ssm\SsmClient;
 use Pimcore\Cache;
 use Pimcore\Console\AbstractCommand;
 use Pimcore\Db;
@@ -28,6 +29,7 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
 class SystemRequirementsCommand extends AbstractCommand
 {
     private $session;
+    private $hasErrors = false;
 
     public function __construct(string $name = null, SessionInterface $session)
     {
@@ -42,12 +44,23 @@ class SystemRequirementsCommand extends AbstractCommand
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->checkFilePermissions();
-        $this->checkDb();
-        $this->checkS3();
-        $this->checkRedisCache();
-        $this->checkSessionStorage();
-        return 0;
+        $returnCode = 0;
+        try {
+            $this->checkFilePermissions();
+            $this->checkDb();
+            $this->checkS3();
+            $this->checkRedisCache();
+            $this->checkSessionStorage();
+            $this->checkParameterStoreAccess();
+            $this->checkMigrationState();
+        } finally {
+            if ($this->hasErrors) {
+                $returnCode = 100;
+                return $returnCode;
+            }
+        }
+
+        return $returnCode;
     }
 
     private function checkFilePermissions() {
@@ -62,7 +75,7 @@ class SystemRequirementsCommand extends AbstractCommand
 
         $hasErrors = false;
         if (!empty($messageLog)) {
-            $output->writeln('<error> ~ File permissions not optimal.</error>');
+            $this->logError('File permissions not optimal');
             foreach ($messageLog as $dir => $log) {
                 $output->write(' - '.$log);
                 shell_exec('chown www-data: "'.$dir.'" -R');
@@ -76,7 +89,7 @@ class SystemRequirementsCommand extends AbstractCommand
         }
 
         if (!$hasErrors) {
-            $output->writeln('<info>~ File permissions OK.</info>');
+            $this->logSuccess('File permissions OK.');
         }
     }
 
@@ -84,9 +97,9 @@ class SystemRequirementsCommand extends AbstractCommand
         $output = $this->output;
         try {
             Db::getConnection();
-            $output->writeln('<info>~ DB connection OK.</info>');
+            $this->logSuccess('DB connection OK.');
         } catch (\Throwable $e) {
-            $output->writeln('<error>~ DB connection is not working.');
+            $this->logError('DB connection is not working.');
         }
     }
 
@@ -96,7 +109,7 @@ class SystemRequirementsCommand extends AbstractCommand
             $context = File::getContext();
             $options = stream_context_get_options($context);
             if (!isset($options['s3'])) {
-                $output->writeln('<error>~ Resource is not configured to use S3!');
+                $this->logError('Resource is not configured to use S3!');
             } else {
                 $s3Client = new S3Client([
                     'version' => 'latest',
@@ -115,10 +128,10 @@ class SystemRequirementsCommand extends AbstractCommand
 
             }
 
-            $output->writeln('<info>~ S3 connection OK.</info>');
+            $this->logSuccess('S3 connection OK.');
 
         } catch (\Throwable $e) {
-            $output->writeln('<error>~ S3 connection is not working. '.$e->getMessage());
+            $this->logError('S3 connection is not working. '.$e->getMessage());
         }
     }
 
@@ -127,18 +140,18 @@ class SystemRequirementsCommand extends AbstractCommand
         try {
 
             if (!Cache::isEnabled()) {
-                $output->writeln('<error>Cache is not enabled.</error>');
+                $this->logError('Cache is not enabled.');
             } else {
                 Cache::save('bar', 'foo', [], null, 0, true);
                 $bar = Cache::load('foo');
                 if ('bar' !== $bar) {
                     throw new \Exception('Basic cache test returns wrong result '.$bar);
                 } else {
-                    $output->writeln('<info>~ Cache setup OK.</info>');
+                    $this->logSuccess('Cache setup OK.');
                 }
             }
         } catch (\Throwable $e) {
-            $output->writeln('<error>~ Cache setup not working yet.'.$e->getMessage());
+            $this->logError('Cache setup not working yet.'.$e->getMessage());
         }
     }
 
@@ -149,12 +162,69 @@ class SystemRequirementsCommand extends AbstractCommand
             if ('bar' !== $this->session->get('foo')) {
                 throw new \Exception('Basic session test returns wrong result');
             } else {
-                $output->writeln('<info>~ Session setup (Redis) OK.</info>');
+                $this->logSuccess('Session setup (Redis) OK.');
             }
 
         } catch (\Throwable $e) {
-            $output->writeln('<error>~ Session Storage setup not working yet.'.$e->getMessage());
+            $this->logError('Session Storage setup not working yet.'.$e->getMessage());
         }
+    }
 
+    private function getSssmClient() : SsmClient {
+        $ssmClient = new SsmClient([
+            'version' => 'latest',
+            'region' => getenv('s3Region'), //'us-east-2', // choose your favorite region
+            'credentials' => [
+                // use your aws credentials
+                'key' => 'AKIAWBAR2ZIEPAO6XI2S', //getenv('s3Key'), //'AKIAJOAFDIFXXXXXXXXXX',
+                'secret' => 'hCL9RviyAHCt4m+K4L6KX7UyAixY6KJiy01i/t+m', //getenv('s3Secret'), //'uw7fGn0if9KvQR09O+n7E8+XXXXXXXXXX',
+            ],
+        ]);
+        return $ssmClient;
+    }
+
+    private function checkParameterStoreAccess() {
+        try {
+
+            $ssmClient = $this->getSssmClient();
+            $value = $ssmClient->getParameter(['Name' => 'pimcoreTestParam', 'WithDecryption' => true])->get('Parameter')['Value'];
+
+            if (strpos($value, 'IT***WORKS') > 0) {
+                $this->logSuccess(('Test parameter "pimcoreTestParam" was successfully retrieved with value '.$value));
+            } else {
+                $this->logError('Parameter store access test failed. Value: '.$value);
+            }
+
+        } catch (\Throwable $e) {
+            $this->logError('Migration number determination failed. '.$e->getMessage());
+        }
+    }
+
+    private function checkMigrationState() {
+        try {
+
+            $ssmClient = $this->getSssmClient();
+            $migrationVersionValue = $ssmClient->getParameter(['Name' => 'pimcoreDemoLiveMigrationsVersion', 'WithDecryption' => true])
+                ->get('Parameter')['Value'];
+
+            if ($migrationVersionValue == 'V101') {
+                $this->logInfo('Migration version setup check ('.$migrationVersionValue.') OK.');
+                return;
+            }
+
+            $this->logError('Migration version does not match: '.$migrationVersionValue);
+
+        } catch (\Throwable $e) {
+            $this->logError('Migration number determination failed. '.$e->getMessage());
+        }
+    }
+
+    private function logSuccess(string $message) {
+        $this->output->writeln('<info>~ '.$message.'</info>');
+    }
+
+    private function logError(string $message) {
+        $this->hasErrors = true;
+        $this->output->writeln('<error>~ '.$message.'</error>');
     }
 }

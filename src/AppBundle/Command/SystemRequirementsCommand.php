@@ -173,7 +173,7 @@ class SystemRequirementsCommand extends AbstractCommand
     private function getSssmClient() : SsmClient {
         $ssmClient = new SsmClient([
             'version' => 'latest',
-            'region' => getenv('s3Region'), //'us-east-2', // choose your favorite region
+            'region' => getenv('ssmRegion'), //'us-east-2', // choose your favorite region
             'credentials' => [
                 'key' => getenv('ssmKey'),
                 'secret' => getenv('ssmSecret')

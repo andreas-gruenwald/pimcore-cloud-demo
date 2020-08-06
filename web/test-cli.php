@@ -5,6 +5,7 @@
         die('Access not allowed for IP '.$currentIp);
     }
 
+    exec('/var/www/html/bin/console app:system-requirements 2>&1', $healhStateLog, $healthStateCode);
 ?>
 <html>
 <head>
@@ -34,7 +35,7 @@
             top: 0px;
         }
 
-        .clibox {
+        .clibox, .healthbox {
             padding:5px;
             background-color:black;
             color:white;
@@ -49,7 +50,54 @@
             font-family: monospace;
         }
 
+        .healthbox {
+            cursor:pointer;
+        }
+
+        .healthbox.healthy {
+            background-color:yellow;
+
+        }
+
+        .healthbox.unhealthy {
+            background-color:red;
+
+        }
+
+        #health-details {
+            display: none;
+            margin: 1em 0 2em 0;
+            border: 1px solid #9e9e9e;
+        }
+
     </style>
+
+    <script type="text/javascript">
+        // Show an element
+        var show = function (elem) {
+            elem.style.display = 'block';
+        };
+
+        // Hide an element
+        var hide = function (elem) {
+            elem.style.display = 'none';
+        };
+
+        // Toggle element visibility
+        var toggle = function (elem) {
+
+            // If the element is visible, hide it
+            if (window.getComputedStyle(elem).display === 'block') {
+                hide(elem);
+                return;
+            }
+
+            // Otherwise, show it
+            show(elem);
+
+        };
+    </script>
+
 </head>
 <body>
 
@@ -65,6 +113,20 @@
 
 <div class="clibox <?php echo $isCliEnabled ? "enabled" : "disabled";?>">
     <?php echo $isCliEnabled ? '✓ CLI is enabled.' : '✓ CLI is not active.';?>
+</div>
+
+<div class="healthbox <?=$healthStateCode <= 0 ? 'healthy' : 'unhealthy';?>" onclick="toggle(document.getElementById('health-details'))">
+    <?php if ($healthStateCode <= 0) {
+        echo "🌞 Health Status is just fine.";
+    } else {
+        echo "☁ Not Healthy";
+    }?>
+</div>
+<div id="health-details">
+    <?php
+        foreach ($healhStateLog ? : [] as $i => $log) {
+            echo ($i > 0 ? '</br>' : '').$log;
+    }?>
 </div>
 
 

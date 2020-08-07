@@ -52,7 +52,8 @@ class SystemRequirementsCommand extends AbstractCommand
             $this->checkRedisCache();
             $this->checkSessionStorage();
             $this->checkParameterStoreAccess();
-            $this->checkMigrationState();
+            $this->checkMigrationStateParameterStore();
+            $this->checkOpenMigrations();
         } finally {
             if ($this->hasErrors) {
                 $returnCode = 100;
@@ -201,7 +202,7 @@ class SystemRequirementsCommand extends AbstractCommand
         }
     }
 
-    private function checkMigrationState() {
+    private function checkMigrationStateParameterStore() {
         try {
 
             $ssmClient = $this->getSssmClient();
@@ -219,6 +220,26 @@ class SystemRequirementsCommand extends AbstractCommand
         } catch (\Throwable $e) {
             $this->logError('Migration number determination failed. '.$e->getMessage());
         }
+    }
+
+    private function checkOpenMigrations() {
+        $numMigrations = -1;
+        $migrationsLog = [];
+        $getNoMigrations = 'timeout 2.5 /var/www/html/bin/console pimcore:migrations:status --show-versions | grep ">> New Migrations:"';
+        exec($getNoMigrations, $migrationsLog, $migrationsStateCode);
+        if (!empty($migrationsLog)) {
+            $numMigrations = explode(':', $migrationsLog[0])[1];
+        }
+
+        if ($numMigrations < 0) {
+            $this->logError('Cannot determine migration state.');
+        } elseif ($numMigrations != 0) {
+            $this->logError('There are open migrations: '.$numMigrations. ' On the live system, run ../bin/console pimcore:migrations:migrate to proceed.');
+        } else {
+            $this->logSuccess('There are no open migrations.');
+        }
+
+        return $numMigrations;
     }
 
     private function logSuccess(string $message) {

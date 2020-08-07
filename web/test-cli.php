@@ -69,15 +69,14 @@
             cursor:pointer;
         }
 
-        .healthbox.healthy {
-            background-color: #e1e14b;
+        .healthy {
+            background-color: #4caf50;
             color: black;
 
         }
 
-        .healthbox.unhealthy {
+        .unhealthy {
             background-color:red;
-
         }
 
         #health-details {
@@ -138,6 +137,7 @@
         echo "☁ Not Healthy";
     }?>
 </div>
+
 <div id="health-details">
     <?php
         foreach ($healthStateLog ? : [] as $i => $log) {

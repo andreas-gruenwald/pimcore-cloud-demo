@@ -5,7 +5,22 @@
         die('Access not allowed for IP '.$currentIp);
     }
 
-    exec('/var/www/html/bin/console app:system-requirements 2>&1', $healhStateLog, $healthStateCode);
+    if (file_exists('/var/www/html/.env')) {
+        $lines = explode(PHP_EOL, file_get_contents('/var/www/html/.env'));
+        foreach ($lines as $line) {
+            if (strpos($line, '=') > 0) {
+               if (!empty(trim($line))) {
+                   putenv($line);
+               }
+            }
+        }
+    }
+
+    $healthStateLog = [];
+    exec('timeout 2.5 /var/www/html/bin/console app:system-requirements 2>&1', $healthStateLog, $healthStateCode);
+    if (empty($healthStateLog)) {
+        $healthStateLog[]= 'Timeout occured, probably one of the resources cannot connect.';
+    }
 ?>
 <html>
 <head>
@@ -55,7 +70,8 @@
         }
 
         .healthbox.healthy {
-            background-color:yellow;
+            background-color: #e1e14b;
+            color: black;
 
         }
 
@@ -104,7 +120,7 @@
 <h1>Docker Toolbox for Hosted Containers</h1>
 
 <?php if (getenv('APP_COLOR')):?>
-    <div class="colorbox">Your app's color is <?php echo getenv('APP_COLOR');?>.</div>
+    <div class="colorbox"><?php echo getenv('APP_CONTAINER_INFO') ? : '-';?></div>
 <?php endif; ?>
 
 <?php
@@ -117,14 +133,14 @@
 
 <div class="healthbox <?=$healthStateCode <= 0 ? 'healthy' : 'unhealthy';?>" onclick="toggle(document.getElementById('health-details'))">
     <?php if ($healthStateCode <= 0) {
-        echo "🌞 Health Status is just fine.";
+        echo "🌞 Health fine.";
     } else {
         echo "☁ Not Healthy";
     }?>
 </div>
 <div id="health-details">
     <?php
-        foreach ($healhStateLog ? : [] as $i => $log) {
+        foreach ($healthStateLog ? : [] as $i => $log) {
             echo ($i > 0 ? '</br>' : '').$log;
     }?>
 </div>
@@ -162,8 +178,7 @@ if ($ecsMetaUrl) {
 
     <div class="ecs-info">
         <h2>AWS ECS provides a link to access metadata about the task and the container environment:</h2>
-        <?php foreach ($calls as $name => $command) {
-
+        <?php foreach ($calls as $name => $url) {
             echo '<h3>'.$name.'</h3>';
             echo "URL: ".$url.'<br>';
             echo "Response:";

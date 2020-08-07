@@ -67,7 +67,9 @@ class SystemRequirementsCommand extends AbstractCommand
         $output = $this->output;
 
         $messageLog = [];
-        foreach ([PIMCORE_SYMFONY_CACHE_DIRECTORY, PIMCORE_LOG_DIRECTORY] as $dir) {
+        foreach ([PIMCORE_SYMFONY_CACHE_DIRECTORY
+                 //    , PIMCORE_LOG_DIRECTORY
+                 ] as $dir) {
             if (!is_writable($dir)) {
                 $messageLog[$dir] = 'Not writable: ' . $dir;
             }
@@ -189,7 +191,7 @@ class SystemRequirementsCommand extends AbstractCommand
             $value = $ssmClient->getParameter(['Name' => 'pimcoreTestParam', 'WithDecryption' => true])->get('Parameter')['Value'];
 
             if (strpos($value, 'IT***WORKS') > 0) {
-                $this->logSuccess(('Test parameter "pimcoreTestParam" was successfully retrieved with value '.$value));
+                $this->logSuccess(('Parameter Store (SSM) access OK (value "'.$value.'")'));
             } else {
                 $this->logError('Parameter store access test failed. Value: '.$value);
             }
@@ -203,15 +205,16 @@ class SystemRequirementsCommand extends AbstractCommand
         try {
 
             $ssmClient = $this->getSssmClient();
-            $migrationVersionValue = $ssmClient->getParameter(['Name' => 'pimcoreDemoLiveMigrationsVersion', 'WithDecryption' => true])
+            $parameterName = getenv('APP_MIGRATION_PARAM_NAME');
+            $migrationVersionValue = $ssmClient->getParameter(['Name' =>$parameterName, 'WithDecryption' => true])
                 ->get('Parameter')['Value'];
 
-            if ($migrationVersionValue == 'V101') {
-                $this->logInfo('Migration version setup check ('.$migrationVersionValue.') OK.');
+            $expectedValue = getenv('APP_MIGRATION_CURRENT_VERSION') ? : 'NOT_CONFIGURED_PLEASE_CHANGE';
+            if ($migrationVersionValue == $expectedValue) {
+                $this->logSuccess('Migration version setup check ('.$parameterName.':'.$migrationVersionValue.') OK.');
                 return;
             }
-
-            $this->logError('Migration version does not match: '.$migrationVersionValue);
+            $this->logError('Migration version does not match: '.$parameterName.':"'.$migrationVersionValue.'" not equals container value "'.$expectedValue.'".');
 
         } catch (\Throwable $e) {
             $this->logError('Migration number determination failed. '.$e->getMessage());

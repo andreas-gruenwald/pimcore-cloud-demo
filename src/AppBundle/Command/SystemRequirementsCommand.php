@@ -15,26 +15,27 @@
 
 namespace AppBundle\Command;
 
+use AppBundle\Services\EcsDeploymentService;
 use Aws\S3\S3Client;
-use Aws\Ssm\SsmClient;
 use Pimcore\Cache;
 use Pimcore\Console\AbstractCommand;
 use Pimcore\Db;
 use Pimcore\File;
-use Pimcore\Model\Asset;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class SystemRequirementsCommand extends AbstractCommand
 {
+    private $ecsDeploymentService;
     private $session;
     private $hasErrors = false;
 
-    public function __construct(string $name = null, SessionInterface $session)
+    public function __construct(string $name = null, SessionInterface $session, EcsDeploymentService $ecsDeploymentService)
     {
         parent::__construct($name);
         $this->session = $session;
+        $this->ecsDeploymentService = $ecsDeploymentService;
     }
 
     public function configure()
@@ -173,22 +174,10 @@ class SystemRequirementsCommand extends AbstractCommand
         }
     }
 
-    private function getSssmClient() : SsmClient {
-        $ssmClient = new SsmClient([
-            'version' => 'latest',
-            'region' => getenv('ssmRegion'), //'us-east-2', // choose your favorite region
-            'credentials' => [
-                'key' => getenv('ssmKey'),
-                'secret' => getenv('ssmSecret')
-            ]
-        ]);
-        return $ssmClient;
-    }
-
     private function checkParameterStoreAccess() {
         try {
 
-            $ssmClient = $this->getSssmClient();
+            $ssmClient = $this->ecsDeploymentService->getSssmClient();
             $value = $ssmClient->getParameter(['Name' => 'pimcoreTestParam', 'WithDecryption' => true])->get('Parameter')['Value'];
 
             if (strpos($value, 'IT***WORKS') > 0) {
@@ -204,18 +193,10 @@ class SystemRequirementsCommand extends AbstractCommand
 
     private function checkMigrationStateParameterStore() {
         try {
-
-            $ssmClient = $this->getSssmClient();
-            $parameterName = getenv('APP_MIGRATION_PARAM_NAME');
-            $migrationVersionValue = $ssmClient->getParameter(['Name' =>$parameterName, 'WithDecryption' => true])
-                ->get('Parameter')['Value'];
-
-            $expectedValue = getenv('APP_MIGRATION_CURRENT_VERSION') ? : 'NOT_CONFIGURED_PLEASE_CHANGE';
-            if ($migrationVersionValue == $expectedValue) {
-                $this->logSuccess('Migration version setup check ('.$parameterName.':'.$migrationVersionValue.') OK.');
-                return;
-            }
-            $this->logError('Migration version does not match: '.$parameterName.':"'.$migrationVersionValue.'" not equals container value "'.$expectedValue.'".');
+            $this->ecsDeploymentService->isMigrationParamValueCurrent(true);
+            $this->logSuccess('Migration version setup check ('
+                .$this->ecsDeploymentService->getMigrationParamName().':' .$this->ecsDeploymentService->accessMigrationParamValue().') OK.'
+            );
 
         } catch (\Throwable $e) {
             $this->logError('Migration number determination failed. '.$e->getMessage());

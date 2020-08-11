@@ -13,6 +13,7 @@ class Version20200807120319 extends AbstractPimcoreMigration
     public function preUp(Schema $schema)
     {
         parent::preUp($schema);
+
     }
 
 

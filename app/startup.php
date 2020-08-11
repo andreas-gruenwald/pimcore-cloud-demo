@@ -1,17 +1,19 @@
 <?php
 use Aws\S3\S3Client;
 
+include('startup_healthcheck.php'); //check health
+
 if (!getenv('s3EngineEnabled')) {
     return;
 }
 
 $s3Client = new S3Client([
     'version' => 'latest',
-    'region' => getenv('s3Region'), //'us-east-2', // choose your favorite region
+    'region' => getenv('s3Region'),
     'credentials' => [
         // use your aws credentials
-        'key' => getenv('s3Key'), //'AKIAJOAFDIFXXXXXXXXXX',
-        'secret' => getenv('s3Secret'), //'uw7fGn0if9KvQR09O+n7E8+XXXXXXXXXX',
+        'key' => getenv('s3Key'),
+        'secret' => getenv('s3Secret'),
     ],
 ]);
 

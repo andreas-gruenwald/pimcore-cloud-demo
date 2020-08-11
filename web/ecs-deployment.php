@@ -1,5 +1,5 @@
 <?php
-    $allowedIps = ['89.26.34.65']; //Elements IP Address
+    $allowedIps = ['89.26.34.65', '10.242.2.12']; //Elements IP Address
     $currentIp = isset($_SERVER["HTTP_X_FORWARDED_FOR"]) ? $_SERVER["HTTP_X_FORWARDED_FOR"] : $_SERVER['REMOTE_ADDR'];
     if(!in_array($currentIp, $allowedIps) && strpos($currentIp, '192.168') !== 0) {
         die('Access not allowed for IP '.$currentIp);

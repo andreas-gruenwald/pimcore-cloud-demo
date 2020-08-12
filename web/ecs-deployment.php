@@ -1,4 +1,7 @@
 <?php
+    include __DIR__ . "/../vendor/autoload.php";
+    $ecs = new \AppBundle\Services\EcsDeploymentService();
+
     $allowedIps = ['89.26.34.65', '10.242.2.12']; //Elements IP Address
     $currentIp = isset($_SERVER["HTTP_X_FORWARDED_FOR"]) ? $_SERVER["HTTP_X_FORWARDED_FOR"] : $_SERVER['REMOTE_ADDR'];
     if(!in_array($currentIp, $allowedIps) && strpos($currentIp, '192.168') !== 0) {
@@ -85,6 +88,17 @@
             border: 1px solid #9e9e9e;
         }
 
+        .migration-param-block{
+            display: inline-block;
+            line-height:2.8em;
+            padding-left:0.5em;
+            padding-top:0.5em;
+        }
+
+        .input-field {
+            line-height:1.2em;
+        }
+
     </style>
 
     <script type="text/javascript">
@@ -119,7 +133,26 @@
 <h1>Docker Toolbox for Hosted Containers</h1>
 
 <?php if (getenv('APP_COLOR')):?>
-    <div class="colorbox"><?php echo getenv('APP_CONTAINER_INFO') ? : '-';?></div>
+    <div class="colorbox">
+        <form method="POST" class="migration-param-block">
+            <label for="migrationParamValue">Migration Param:</label>
+            <input type="hidden" name="migrationParamValueOld" class="input-field" value="<?=$ecs->accessMigrationParamValue();?>"/>
+            <input type="text" name="migrationParamValue" class="input-field" value="<?=$ecs->accessMigrationParamValue();?>"/>
+            <input type="submit" value="⟳"/>
+
+            <?php
+            $oldValue = $_POST['migrationParamValueOld'];
+            $newValue = $_POST['migrationParamValue'];
+            if ($oldValue && $newValue && $oldValue != $newValue) {
+                $ecs->updateMigrationParamValue($newValue);
+            }
+            ?>
+
+        </form>
+
+        <?php //echo getenv('APP_CONTAINER_INFO') ? : '-';?>
+
+    </div>
 <?php endif; ?>
 
 <?php

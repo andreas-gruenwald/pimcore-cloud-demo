@@ -3,7 +3,6 @@
 
 namespace AppBundle\Services;
 
-
 use Aws\Ssm\SsmClient;
 
 class EcsDeploymentService
@@ -48,7 +47,9 @@ class EcsDeploymentService
 
     public function updateMigrationParamValue(string $value) {
         $paramName = $this->getMigrationParamName();
-        $this->getSssmClient()->putParameter([$paramName => $value]);
+        $this->getSssmClient()->putParameter(
+            ['Name' => $paramName,  'Value' => $value, 'Overwrite' => true]
+        );
     }
 
     public function getSssmClient() : SsmClient {

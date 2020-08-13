@@ -1,6 +1,6 @@
 <?php
     $healthStateLog = [];
-    exec('timeout 1.5 /var/www/html/bin/console app:system-requirements 2>&1', $healthStateLog, $healthStateCode);
+    exec('timeout 5.0 /var/www/html/bin/console app:system-requirements 2>&1', $healthStateLog, $healthStateCode);
     if (empty($healthStateLog)) {
         $healthStateLog[]= 'Timeout occured, probably one of the resources cannot connect.';
     }

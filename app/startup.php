@@ -1,7 +1,7 @@
 <?php
 use Aws\S3\S3Client;
 
-include('startup_healthcheck.php'); //check health
+include('startup-healthcheck.php'); //check health
 
 if (!getenv('s3EngineEnabled')) {
     return;

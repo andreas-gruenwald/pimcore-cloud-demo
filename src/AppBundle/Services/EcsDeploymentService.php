@@ -33,9 +33,14 @@ class EcsDeploymentService
         return $this->getSsmParameter($parameterName);
     }
 
+    public function getMigrationParamCurrentValue() : string {
+        $expectedValue = getenv('APP_MIGRATION_CURRENT_VERSION') ? : 'UNKNOWN';
+        return $expectedValue;
+    }
+
     public function isMigrationParamValueCurrent(bool $throwException = true) : bool {
         $currentValue = $this->accessMigrationParamValue();
-        $expectedValue = getenv('APP_MIGRATION_CURRENT_VERSION') ? : 'NOT_CONFIGURED_PLEASE_CHANGE';
+        $expectedValue = $this->getMigrationParamCurrentValue();
         if ($currentValue == $expectedValue) {
             return true;
         }

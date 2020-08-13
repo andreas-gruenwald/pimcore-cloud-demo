@@ -19,7 +19,15 @@
         }
     }
 
-    $healthStateLog = [];
+    //migration version update.
+    $oldValue = $_POST['migrationParamValueOld'];
+    $newValue = $_POST['migrationParamValue'];
+    if ($oldValue && $newValue && $oldValue != $newValue) {
+        $ecs->updateMigrationParamValue($newValue);
+    }
+
+
+$healthStateLog = [];
     exec('timeout 2.5 /var/www/html/bin/console app:system-requirements 2>&1', $healthStateLog, $healthStateCode);
     if (empty($healthStateLog)) {
         $healthStateLog[]= 'Timeout occured, probably one of the resources cannot connect.';
@@ -50,7 +58,7 @@
             text-align:center;
             position: absolute;
             right: 0px;
-            top: 0px;
+            bottom: 0px;
         }
 
         .clibox, .healthbox {
@@ -135,18 +143,13 @@
 <?php if (getenv('APP_COLOR')):?>
     <div class="colorbox">
         <form method="POST" class="migration-param-block">
-            <label for="migrationParamValue">Migration Param:</label>
+            <label for="migrationParamValue">Migration Param (Store):</label>
             <input type="hidden" name="migrationParamValueOld" class="input-field" value="<?=$ecs->accessMigrationParamValue();?>"/>
             <input type="text" name="migrationParamValue" class="input-field" value="<?=$ecs->accessMigrationParamValue();?>"/>
-            <input type="submit" value="⟳"/>
+            <input type="submit" value="Save"/>
 
-            <?php
-            $oldValue = $_POST['migrationParamValueOld'];
-            $newValue = $_POST['migrationParamValue'];
-            if ($oldValue && $newValue && $oldValue != $newValue) {
-                $ecs->updateMigrationParamValue($newValue);
-            }
-            ?>
+            <span>Container value is &quot;<?=$ecs->getMigrationParamCurrentValue();?>&quot;.</span>
+
 
         </form>
 

@@ -181,7 +181,7 @@ class SystemRequirementsCommand extends AbstractCommand
             $value = $ssmClient->getParameter(['Name' => 'pimcoreTestParam', 'WithDecryption' => true])->get('Parameter')['Value'];
 
             if (strpos($value, 'IT***WORKS') > 0) {
-                $this->logSuccess(('Parameter Store (SSM) access OK (value "'.$value.'")'));
+                $this->logSuccess(('Parameter Store (SSM) access OK.'));
             } else {
                 $this->logError('Parameter store access test failed. Value: '.$value);
             }

@@ -44,7 +44,8 @@ services:
 
   # Main PHP instance
   php:
-    image: pimcore/pimcore:PHP7.4-apache
+    #image: pimcore/pimcore:PHP7.4-apache
+    image: pimcore/pimcore:PHP7.4-fpm
     volumes:
       - .:/var/www/html:cached
       #- cache:/var/www/html/var/cache

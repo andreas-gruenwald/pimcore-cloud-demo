@@ -27,7 +27,7 @@
     }
 
 
-$healthStateLog = [];
+    $healthStateLog = [];
     exec('timeout 2.5 /var/www/html/bin/console app:system-requirements 2>&1', $healthStateLog, $healthStateCode);
     if (empty($healthStateLog)) {
         $healthStateLog[]= 'Timeout occured, probably one of the resources cannot connect.';
@@ -90,7 +90,7 @@ $healthStateLog = [];
             background-color:red;
         }
 
-        #health-details {
+        #healthbox-details {
             display: none;
             margin: 1em 0 2em 0;
             border: 1px solid #9e9e9e;
@@ -108,32 +108,6 @@ $healthStateLog = [];
         }
 
     </style>
-
-    <script type="text/javascript">
-        // Show an element
-        var show = function (elem) {
-            elem.style.display = 'block';
-        };
-
-        // Hide an element
-        var hide = function (elem) {
-            elem.style.display = 'none';
-        };
-
-        // Toggle element visibility
-        var toggle = function (elem) {
-
-            // If the element is visible, hide it
-            if (window.getComputedStyle(elem).display === 'block') {
-                hide(elem);
-                return;
-            }
-
-            // Otherwise, show it
-            show(elem);
-
-        };
-    </script>
 
 </head>
 <body>
@@ -166,7 +140,7 @@ $healthStateLog = [];
     <?php echo $isCliEnabled ? '✓ CLI is enabled.' : '✓ CLI is not active.';?>
 </div>
 
-<div class="healthbox <?=$healthStateCode <= 0 ? 'healthy' : 'unhealthy';?>" onclick="toggle(document.getElementById('health-details'))">
+<div id="healthbox" class="healthbox <?=$healthStateCode <= 0 ? 'healthy' : 'unhealthy';?> js-toggle">
     <?php if ($healthStateCode <= 0) {
         echo "🌞 Health fine.";
     } else {
@@ -174,7 +148,7 @@ $healthStateLog = [];
     }?>
 </div>
 
-<div id="health-details">
+<div id="healthbox-details">
     <?php
         foreach ($healthStateLog ? : [] as $i => $log) {
             echo ($i > 0 ? '</br>' : '').$log;
@@ -226,6 +200,45 @@ if ($ecsMetaUrl) {
     <?php
 }
 ?>
+
+
+<script type="text/javascript">
+    // Show an element
+    var show = function (elem) {
+        elem.style.display = 'block';
+    };
+
+    // Hide an element
+    var hide = function (elem) {
+        elem.style.display = 'none';
+    };
+
+    // Toggle element visibility
+    var toggle = function (elem) {
+
+        // If the element is visible, hide it
+        if (window.getComputedStyle(elem).display === 'block') {
+            hide(elem);
+            return;
+        }
+
+        // Otherwise, show it
+        show(elem);
+
+    };
+
+    (function() {
+        let elements = document.getElementsByClassName('js-toggle');
+        for (var i=0; i < elements.length; i++) {
+            let element = elements[i];
+            element.addEventListener('click', () => {
+                toggle(document.getElementById(element.id + '-details'));
+            });
+        }
+
+    })();
+
+</script>
 
 </body>
 </html>

@@ -22,6 +22,7 @@ use Pimcore\Console\AbstractCommand;
 use Pimcore\Db;
 use Pimcore\File;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
@@ -30,6 +31,15 @@ class SystemRequirementsCommand extends AbstractCommand
     private $ecsDeploymentService;
     private $session;
     private $hasErrors = false;
+
+    const OPTION_PERMISSIONS = 'permissions';
+    const OPTION_DB = 'db';
+    const OPTION_S3 = 's3';
+    const OPTION_REDIS_CACHE = 'redis_cache';
+    const OPTION_REDIS_SESSION = 'redis_session';
+    const OPTION_SECRET_STORE = 'secrets';
+    const OPTION_OPEN_MIGRATIONS = 'migrations';
+    const OPTION_MIGRATION_VERSION = 'migration_version';
 
     public function __construct(string $name = null, SessionInterface $session, EcsDeploymentService $ecsDeploymentService)
     {
@@ -41,20 +51,67 @@ class SystemRequirementsCommand extends AbstractCommand
     public function configure()
     {
         $this->setName('app:system-requirements');
+        $this->addOption('resource', 'r',
+            InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,
+            'Only verify connection to certain resources. Allowed values: '.$this->getAllowedOptions()
+        );
+    }
+
+    private function getAllowedOptions() : array {
+        return [self::OPTION_DB, self::OPTION_PERMISSIONS, self::OPTION_REDIS_CACHE, self::OPTION_REDIS_SESSION,
+            self::OPTION_S3, self::OPTION_SECRET_STORE, self::OPTION_OPEN_MIGRATIONS, self::OPTION_MIGRATION_VERSION];
     }
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
         $returnCode = 0;
+
         try {
-            $this->checkFilePermissions();
-            $this->checkDb();
-            $this->checkS3();
-            $this->checkRedisCache();
-            $this->checkSessionStorage();
-            $this->checkParameterStoreAccess();
-            $this->checkMigrationStateParameterStore();
-            $this->checkOpenMigrations();
+
+            $resources = $input->getOption('resource') ? : $this->getAllowedOptions();
+
+            if (count(array_diff($resources, $this->getAllowedOptions())) > 0) {
+                $this->hasErrors = true;
+                $message = sprintf('Unknown resource option "%s". Use one of "%s".',
+                    implode(",",
+                        array_diff($resources, $this->getAllowedOptions())), implode(",",$this->getAllowedOptions()));
+                $output->writeln('<error>'.$message.'</error>');
+                throw new \Exception($message);
+            }
+
+
+            if (in_array(self::OPTION_PERMISSIONS, $resources)) {
+                $this->checkFilePermissions();
+            }
+
+            if (in_array(self::OPTION_DB, $resources)) {
+                $this->checkDb();
+            }
+
+            if (in_array(self::OPTION_S3, $resources)) {
+                $this->checkS3();
+            }
+
+            if (in_array(self::OPTION_REDIS_CACHE, $resources)) {
+                $this->checkRedisCache();
+            }
+
+            if (in_array(self::OPTION_REDIS_SESSION, $resources)) {
+                $this->checkSessionStorage();
+            }
+
+            if (in_array(self::OPTION_SECRET_STORE, $resources)) {
+                $this->checkParameterStoreAccess();
+            }
+
+            if (in_array(self::OPTION_MIGRATION_VERSION, $resources)) {
+                $this->checkMigrationStateParameterStore();
+            }
+
+            if (in_array(self::OPTION_OPEN_MIGRATIONS, $resources)) {
+                $this->checkOpenMigrations();
+            }
+
         } finally {
             if ($this->hasErrors) {
                 $returnCode = 100;
@@ -118,16 +175,27 @@ class SystemRequirementsCommand extends AbstractCommand
                 $s3Client = new S3Client([
                     'version' => 'latest',
                     'region' => getenv('s3Region'),
-                    'credentials' => [
-                        // use your aws credentials
-                        'key' => getenv('s3Key'),
-                        'secret' => getenv('s3Secret'),
-                    ],
+//                    'credentials' => [
+//                        // use your aws credentials
+//                        'key' => getenv('s3Key'),
+//                        'secret' => getenv('s3Secret'),
+//                    ],
                 ]);
 
                 $bucketExists = $s3Client->doesBucketExist(getenv('s3BucketName'));
                 if (!$bucketExists) {
-                    throw new \Exception(sprintf('Bucket "%s" not existing.', getenv('s3BucketName')));
+                    $message = sprintf('Bucket "%s" not existing.', getenv('s3BucketName'));
+                    try {
+                        $s3Client->listBuckets();
+                        $message .= '..but listBuckets works!';
+                    } catch (\Exception $e) {
+                        $message .= '..listBuckets: '.$e->getMessage();
+                    }
+                    $message .= PHP_EOL.PHP_EOL.'Please take a look at '.
+                        'https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials_environment.html '.
+                        'and ensure that you either set the correct environment variables, or that the ECS user has got the right permissions.'
+                    ;
+                    throw new \Exception($message);
                 }
 
             }
@@ -224,11 +292,11 @@ class SystemRequirementsCommand extends AbstractCommand
     }
 
     private function logSuccess(string $message) {
-        $this->output->writeln('<info>~ '.$message.'</info>');
+        $this->output->writeln('<info> ✅ '.$message.'</info>');
     }
 
     private function logError(string $message) {
         $this->hasErrors = true;
-        $this->output->writeln('<error>~ '.$message.'</error>');
+        $this->output->writeln('<error> ⛔ '.$message.'</error>');
     }
 }

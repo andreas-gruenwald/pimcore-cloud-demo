@@ -44,8 +44,53 @@ services:
 
   # Main PHP instance
   php:
-    #image: pimcore/pimcore:PHP7.4-apache
-    image: pimcore/pimcore:PHP7.4-fpm
+    image: pimcore/pimcore:PHP7.4-apache
+    #image: pimcore/pimcore:PHP7.4-fpm
+    volumes:
+      - .:/var/www/html:cached
+      #- cache:/var/www/html/var/cache
+      #- log:/var/www/html/var/log
+      - assets:/var/www/html/web/var/assets
+      - thumbnails:/var/www/html/web/var/tmp
+      - versions:/var/www/html/var/versions
+      - recyclebin:/var/www/html/var/recyclebin
+      #- ./app/docker-config/custom-apache.conf:/etc/apache2/conf-enabled/custom-apache.conf
+    ports:
+      - ${HTTP_PORT}:80
+      - ${HTTPS_PORT}:443
+    env_file:
+      - ./app/docker-config/php-container-local.env
+    healthcheck:
+      test: ["CMD-SHELL", "/var/www/html/bin/console app:system-requirements || exit 1"]
+      #test: ["CMD", "curl", "-f", "http://localhost"]
+
+#  # Main PHP instance
+#  php-fpm:
+#    image: pimcore/pimcore:PHP7.4-fpm
+#    volumes:
+#      - .:/var/www/html:cached
+#      #- cache:/var/www/html/var/cache
+#      #- log:/var/www/html/var/log
+#      - assets:/var/www/html/web/var/assets
+#      - thumbnails:/var/www/html/web/var/tmp
+#      - versions:/var/www/html/var/versions
+#      - recyclebin:/var/www/html/var/recyclebin
+#    ports:
+#      - 9911:80
+#      - 9922:443
+#    env_file:
+#      - ./app/docker-config/php-container-local.env
+
+#  nginx:
+#    image: joshuawalsh/nginx-for-php-fpm
+#    ports:
+#      - 6601:80
+#      - 6602:443
+
+  # PHP CLI / Crontab test instance
+  php-cli:
+    image: pimcore/pimcore:PHP7.4-apache
+    #image: pimcore/pimcore:PHP7.4-fpm
     volumes:
       - .:/var/www/html:cached
       #- cache:/var/www/html/var/cache
@@ -55,10 +100,11 @@ services:
       - versions:/var/www/html/var/versions
       - recyclebin:/var/www/html/var/recyclebin
     ports:
-      - ${HTTP_PORT}:80
-      - ${HTTPS_PORT}:443
+      - ${CLI_PORT}:443 # for diagnosis
     env_file:
       - ./app/docker-config/php-container-local.env
+    environment:
+      CLI_ENABLED: "true" #overrides setting in env_file
     healthcheck:
       test: ["CMD-SHELL", "/var/www/html/bin/console app:system-requirements || exit 1"]
       #test: ["CMD", "curl", "-f", "http://localhost"]
@@ -69,6 +115,10 @@ services:
     image: pimcore/pimcore:PHP7.4-apache-debug
     volumes:
       - .:/var/www/html:cached
+      - assets:/var/www/html/web/var/assets
+      - thumbnails:/var/www/html/web/var/tmp
+      - versions:/var/www/html/var/versions
+      - recyclebin:/var/www/html/var/recyclebin
     ports:
       - ${DEBUG_PORT}:80
       - ${XDEBUG_PORT}:9000

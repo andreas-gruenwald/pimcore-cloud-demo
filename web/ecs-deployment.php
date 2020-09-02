@@ -68,6 +68,7 @@
             margin: 0 0 20px 0;
             display: inline-block;
             padding:10px;
+            cursor:pointer;
         }
 
         .clibox.enabled {
@@ -90,7 +91,7 @@
             background-color:red;
         }
 
-        #healthbox-details {
+        #healthbox-details, .togglebox-details {
             display: none;
             margin: 1em 0 2em 0;
             border: 1px solid #9e9e9e;
@@ -136,7 +137,7 @@
     $isCliEnabled = getenv('CLI_ENABLED') == 'true';
 ?>
 
-<div class="clibox <?php echo $isCliEnabled ? "enabled" : "disabled";?>">
+<div id="clibox" class="clibox <?php echo $isCliEnabled ? "enabled" : "disabled";?> js-toggle">
     <?php echo $isCliEnabled ? '✓ CLI is enabled.' : '✓ CLI is not active.';?>
 </div>
 
@@ -155,6 +156,17 @@
     }?>
 </div>
 
+<div id="clibox-details" class="togglebox-details">
+    <?php
+    $crontabConfig = "";
+    if ($isCliEnabled) {
+        exec('crontab -l 2>&1', $crontabConfig, $crontabStatus);
+    } ?>
+
+    <pre class="console"><?php echo implode(PHP_EOL,$crontabConfig ? : ['No cronjob installed.']); ?></pre>
+
+</div>
+
 
 <form method="POST" action="">
 
@@ -167,6 +179,8 @@
         } else {
             echo shell_exec('whoami');
             echo shell_exec('pwd');
+            echo shell_exec('echo "====="');
+            echo shell_exec('ps -aux --forest');
         }
         ?>
     </pre>

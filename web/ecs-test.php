@@ -21,11 +21,7 @@ include __DIR__ . "/../vendor/autoload.php";
 
     //@see https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials.html#credential-profiles
     //@see https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials_environment.html
-    $key = 'AKIAWBAR2ZIEHIREK7XL';
-    $secret = '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';
 
-    putenv('AWS_ACCESS_KEY_ID='.$key); //set the access key when testing with docker locally.
-    putenv('AWS_SECRET_ACCESS_KEY='.$secret); //set the secret access key when testing with docker locally.
 
     $stsClient = new \Aws\Sts\StsClient([
         //'profile' => 'default',

@@ -1,0 +1,23 @@
+#!/usr/bin/env php
+<?php
+
+ob_get_clean();
+
+if (file_exists($a = getcwd() . '/vendor/autoload.php')) {
+    include $a;
+} elseif (file_exists($a = __DIR__ . '/../../../../vendor/autoload.php')) {
+    include $a;
+} elseif (file_exists($a = __DIR__ . '/../vendor/autoload.php')) {
+    include $a;
+} else {
+    fwrite(STDERR, 'Cannot locate autoloader; please run "composer install"' . PHP_EOL);
+    exit(1);
+}
+
+use Symfony\Component\Console\Application;
+
+$application = new Application();
+$application->add(new \Pimcore\Cloud\AWS\Deployment\Command\EcsDeploymentCommand());
+$application->add(new \Pimcore\Cloud\AWS\Deployment\Command\EcsDeploymentCommand1());
+$application->add(new \Pimcore\Cloud\AWS\Deployment\Command\ConfigCommand());
+$application->run();

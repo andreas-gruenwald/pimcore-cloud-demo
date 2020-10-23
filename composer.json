@@ -22,7 +22,8 @@
   },
   "require-dev": {
     "cache/integration-tests": "^0.16.0",
-    "codeception/codeception": "~2.4.5"
+    "codeception/codeception": "~2.4.5",
+    "pimcore/pimcore-cloud-deployment-agent": "dev-master"
   },
   "autoload": {
     "psr-4": {
@@ -70,5 +71,11 @@
       "merge-extra-deep": false,
       "merge-scripts": false
     }
-  }
+  },
+  "repositories": [
+    {
+      "url": "https://github.com/andreas-gruenwald/pimcore-cloud-aws-deployment-controller.git",
+      "type": "git"
+    }
+  ]
 }
